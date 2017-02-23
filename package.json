@@ -1,0 +1,25 @@
+{
+  "name": "jquery.zoom",
+  "version": "1.0.0",
+  "description": "improve jquery.zoom",
+  "main": "gulpfile.js",
+  "dependencies": {},
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^2.0.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/profoundsoul/jQueryZoom.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/profoundsoul/jQueryZoom/issues"
+  },
+  "homepage": "https://github.com/profoundsoul/jQueryZoom#readme"
+}

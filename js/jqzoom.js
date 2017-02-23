@@ -4,31 +4,42 @@
 //  
 // jqZoom version 2.1  
 //**************************************************************  
-(function($) {
-    $.fn.jqueryzoom = function(options) {
-        var settings = {
-            xzoom: 336,     //zoomed width default width  
-            yzoom: 336,     //zoomed div default width  
-            offset: 2,      //zoomed div default offset  
-            position: "right" ,//zoomed div default position,offset position is to the right of the image  
-            lens:1, //zooming lens over the image,by default is 1;  
-            preload: 1 
-        };
-        if (options) {
-            $.extend(settings, options);
-        }
-        var noalt = '';
-        $(this).hover(function() {
-            var imageLeft = $(this).offset().left;
-            var imageTop = $(this).offset().top;
-            var imageWidth = $(this).children('img').get(0).offsetWidth;
-            var imageHeight = $(this).children('img').get(0).offsetHeight;
-            noalt = $(this).children("img").attr("alt");
-            var bigimage = $(this).children("img").attr("jqimg");
-            $(this).children("img").attr("alt", '');
-            if ($("div.zoomdiv").get().length == 0) {
-                $(this).after("<div class='zoomdiv'><img class='bigimg' src='" + bigimage + "'/></div>");
-                $(this).append("<div class='jqZoomPup'>&nbsp;</div>")
+(function ($) {
+    var defaults = {
+        xzoom: 336,       //zoomed width default width
+        yzoom: 336,       //zoomed div default width
+        offset: 30,       //zoomed div default offset
+        position: "right",//zoomed div default position,offset position is to the right of the image
+        lens: true,       //zooming lens over the image,by default is true;
+        bigImageUrlAttribute: 'jqimg',
+        zoomClassName: 'zoomdiv',
+        zoomPupClassName: 'jqZoomPup',
+        zoomBigImageClassName: 'bigimg'
+    };
+    $.fn.jqueryzoom = function (options) {
+        var $el = $(this),
+            noalt = '',
+            settings = $.extend({}, defaults, options || {});
+        $el.hover(function () {
+            var leftpos,
+                imageLeft = $el.offset().left,
+                imageTop = $el.offset().top,
+                $image = $el.children('img').eq(0);
+            if ($image.length < 1) {
+                return;
+            }
+            var imageWidth = $image[0].offsetWidth,
+                imageHeight = $image[0].offsetHeight,
+                bigimageUrl = $image.attr(settings.bigImageUrlAttribute);
+
+            noalt = $image.attr("alt");
+            $image.attr("alt", '');
+
+            if ($el.find('.' + settings.zoomClassName).length == 0) {
+                $el.after(["<div class='" + settings.zoomClassName + "' style='z-index: 100; position: absolute; top:0px; left:0px; width: 200px; height:200px; background: #fff; border:1px solid #CCC; display:none;text-align: center;overflow: hidden;'>",
+                    "<img class='" + settings.zoomBigImageClassName + "' src='" + bigimageUrl + "'/>",
+                    "</div>"].join(''));
+                $el.append("<div style='z-index: 10; visibility: hidden; position:absolute;top:0px;left:0px; border: 1px solid #fff;background:#fff;opacity: 0.5;filter: alpha(Opacity=50);' class='" + settings.zoomPupClassName + "'>&nbsp;</div>")
             }
             if (settings.position == "right") {
                 if (imageLeft + imageWidth + settings.offset + settings.xzoom > screen.width) {
@@ -42,69 +53,64 @@
                     leftpos = imageLeft + imageWidth + settings.offset
                 }
             }
-            $("div.zoomdiv").css({
+            var zoomBox = $el.siblings('.' + settings.zoomClassName).eq(0),
+                zoomPupBox = $el.find('.' + settings.zoomPupClassName).eq(0);
+            zoomBox.css({
                 top: imageTop,
-                left: leftpos
-            });
-            $("div.zoomdiv").width(settings.xzoom);
-            $("div.zoomdiv").height(settings.yzoom);
-            $("div.zoomdiv").show();
+                left: leftpos,
+                width: settings.xzoom + 'px',
+                height: settings.yzoom + 'px'
+            }).show();
             if (!settings.lens) {
-                $(this).css('cursor', 'crosshair');
+                $el.css('cursor', 'crosshair');
             }
-            $(document.body).mousemove(function(e) {
-                mouse = new MouseEvent(e);
-                var bigwidth = $(".bigimg").get(0).offsetWidth;
-                var bigheight = $(".bigimg").get(0).offsetHeight;
-                var scaley = 'x';
-                var scalex = 'y';
+            //underscore throttle
+            var throttleScaleMove = (typeof _ !== 'undefined' && _.throttle) ? _.throttle(scaleMove, 100) : scaleMove;
+            $el.off('mousemove').on('mousemove', throttleScaleMove);
+
+            function scaleMove(e) {
+                var xpos, ypos, scrolly, scrollx,
+                    scaley = 'x',
+                    scalex = 'y',
+                    mousex = e.pageX,
+                    mousey = e.pageY,
+                    bigwidth = zoomBox.find('.' + settings.zoomBigImageClassName)[0].offsetWidth,
+                    bigheight = zoomBox.find('.' + settings.zoomBigImageClassName)[0].offsetHeight;
+                if (!bigwidth || !bigheight || bigwidth < imageWidth) {
+                    return;
+                }
+
                 if (isNaN(scalex) | isNaN(scaley)) {
-                    var scalex = (bigwidth / imageWidth);
-                    var scaley = (bigheight / imageHeight);
-                    $("div.jqZoomPup").width((settings.xzoom) / scalex);
-                    $("div.jqZoomPup").height((settings.yzoom) / scaley);
+                    scalex = (bigwidth / imageWidth);
+                    scaley = (bigheight / imageHeight);
+                    zoomPupBox.width((settings.xzoom) / scalex);
+                    zoomPupBox.height((settings.yzoom) / scaley);
                     if (settings.lens) {
-                        $("div.jqZoomPup").css('visibility', 'visible');
+                        zoomPupBox.css('visibility', 'visible');
                     }
                 }
-                xpos = mouse.x - $("div.jqZoomPup").width() / 2 - imageLeft;
-                ypos = mouse.y - $("div.jqZoomPup").height() / 2 - imageTop;
+                xpos = mousex - zoomPupBox.width() / 2 - imageLeft;
+                ypos = mousey - zoomPupBox.height() / 2 - imageTop;
                 if (settings.lens) {
-                    xpos = (mouse.x - $("div.jqZoomPup").width() / 2 < imageLeft) ? 0 : (mouse.x + $("div.jqZoomPup").width() / 2 > imageWidth + imageLeft) ? (imageWidth - $("div.jqZoomPup").width() - 2) : xpos;
-                    ypos = (mouse.y - $("div.jqZoomPup").height() / 2 < imageTop) ? 0 : (mouse.y + $("div.jqZoomPup").height() / 2 > imageHeight + imageTop) ? (imageHeight - $("div.jqZoomPup").height() - 2) : ypos;
-                }
-                if (settings.lens) {
-                    $("div.jqZoomPup").css({
+                    xpos = (mousex - zoomPupBox.width() / 2 < imageLeft) ? 0 : (mousex + zoomPupBox.width() / 2 > imageWidth + imageLeft) ? (imageWidth - zoomPupBox.width() - 2) : xpos;
+                    ypos = (mousey - zoomPupBox.height() / 2 < imageTop) ? 0 : (mousey + zoomPupBox.height() / 2 > imageHeight + imageTop) ? (imageHeight - zoomPupBox.height() - 2) : ypos;
+                    zoomPupBox.css({
                         top: ypos,
                         left: xpos
                     });
                 }
                 scrolly = ypos;
-                $("div.zoomdiv").get(0).scrollTop = scrolly * scaley;
                 scrollx = xpos;
-                $("div.zoomdiv").get(0).scrollLeft = (scrollx) * scalex
-            })
-        },
-        function() {
-            $(this).children("img").attr("alt", noalt);
-            $(document.body).unbind("mousemove");
-            if (settings.lens) {
-                $("div.jqZoomPup").remove();
+                zoomBox[0].scrollTop = scrolly * scaley;
+                zoomBox[0].scrollLeft = (scrollx) * scalex
             }
-            $("div.zoomdiv").remove();
+
+        }, function () {
+            $el.off('mousemove').children("img").attr("alt", noalt);
+            if (settings.lens) {
+                $el.find('.' + settings.zoomPupClassName).remove();
+            }
+            $el.siblings('.' + settings.zoomClassName).remove();
         });
-        count = 0;
-        if (settings.preload) {
-            $('body').append("<div style='display:none;' class='jqPreload" + count + "'></div>");
-            $(this).each(function() {
-                var imagetopreload = $(this).children("img").attr("jqimg");
-                var content = jQuery('div.jqPreload' + count + '').html();
-                jQuery('div.jqPreload' + count + '').html(content + '<img src=\"' + imagetopreload + '\">')
-            });
-        }
-    }
+    };
 })(jQuery);
-function MouseEvent(e) {
-    this.x = e.pageX;
-    this.y = e.pageY;
-}
