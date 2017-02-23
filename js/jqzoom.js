@@ -20,7 +20,8 @@
         var $el = $(this),
             noalt = '',
             settings = $.extend({}, defaults, options || {});
-        $el.hover(function () {
+        $el.css('position','relative');
+        $el.on('mouseenter', function () {
             var leftpos,
                 imageLeft = $el.offset().left,
                 imageTop = $el.offset().top,
@@ -64,7 +65,6 @@
             if (!settings.lens) {
                 $el.css('cursor', 'crosshair');
             }
-            //underscore throttle
             var throttleScaleMove = (typeof _ !== 'undefined' && _.throttle) ? _.throttle(scaleMove, 100) : scaleMove;
             $el.off('mousemove').on('mousemove', throttleScaleMove);
 
@@ -104,8 +104,8 @@
                 zoomBox[0].scrollTop = scrolly * scaley;
                 zoomBox[0].scrollLeft = (scrollx) * scalex
             }
-
-        }, function () {
+        });
+        $el.on('mouseleave', function () {
             $el.off('mousemove').children("img").attr("alt", noalt);
             if (settings.lens) {
                 $el.find('.' + settings.zoomPupClassName).remove();
