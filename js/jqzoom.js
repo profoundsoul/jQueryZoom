@@ -20,7 +20,7 @@
         var $el = $(this),
             noalt = '',
             settings = $.extend({}, defaults, options || {}),
-            throttleScaleMove = (typeof _ !== 'undefined' && _.throttle) ? _.throttle(scaleMove, 100) : scaleMove;
+            throttleScaleMove = (typeof _ !== 'undefined' && _.throttle) ? _.throttle(scaleMove, 50, {trailing: false}) : scaleMove;
         $el.css('position', 'relative');
         $el.off('mouseenter').on('mouseenter', function () {
             var leftpos,
@@ -73,7 +73,6 @@
             }
             $el.siblings('.' + settings.zoomClassName).remove();
         });
-
         function scaleMove(e) {
             var xpos, ypos, scaley = 'x', scalex = 'y',
                 mousex = e.pageX,
