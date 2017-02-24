@@ -19,9 +19,10 @@
     $.fn.jqueryzoom = function (options) {
         var $el = $(this),
             noalt = '',
-            settings = $.extend({}, defaults, options || {});
-        $el.css('position','relative');
-        $el.on('mouseenter', function () {
+            settings = $.extend({}, defaults, options || {}),
+            throttleScaleMove = (typeof _ !== 'undefined' && _.throttle) ? _.throttle(scaleMove, 100) : scaleMove;
+        $el.css('position', 'relative');
+        $el.off('mouseenter').on('mouseenter', function () {
             var leftpos,
                 imageLeft = $el.offset().left,
                 imageTop = $el.offset().top,
@@ -30,7 +31,6 @@
                 return;
             }
             var imageWidth = $image[0].offsetWidth,
-                imageHeight = $image[0].offsetHeight,
                 bigimageUrl = $image.attr(settings.bigImageUrlAttribute);
 
             noalt = $image.attr("alt");
@@ -54,8 +54,7 @@
                     leftpos = imageLeft + imageWidth + settings.offset
                 }
             }
-            var zoomBox = $el.siblings('.' + settings.zoomClassName).eq(0),
-                zoomPupBox = $el.find('.' + settings.zoomPupClassName).eq(0);
+            var zoomBox = $el.siblings('.' + settings.zoomClassName).eq(0);
             zoomBox.css({
                 top: imageTop,
                 left: leftpos,
@@ -65,52 +64,54 @@
             if (!settings.lens) {
                 $el.css('cursor', 'crosshair');
             }
-            var throttleScaleMove = (typeof _ !== 'undefined' && _.throttle) ? _.throttle(scaleMove, 100) : scaleMove;
-            $el.off('mousemove').on('mousemove', throttleScaleMove);
-
-            function scaleMove(e) {
-                var xpos, ypos, scrolly, scrollx,
-                    scaley = 'x',
-                    scalex = 'y',
-                    mousex = e.pageX,
-                    mousey = e.pageY,
-                    bigwidth = zoomBox.find('.' + settings.zoomBigImageClassName)[0].offsetWidth,
-                    bigheight = zoomBox.find('.' + settings.zoomBigImageClassName)[0].offsetHeight;
-                if (!bigwidth || !bigheight || bigwidth < imageWidth) {
-                    return;
-                }
-
-                if (isNaN(scalex) | isNaN(scaley)) {
-                    scalex = (bigwidth / imageWidth);
-                    scaley = (bigheight / imageHeight);
-                    zoomPupBox.width((settings.xzoom) / scalex);
-                    zoomPupBox.height((settings.yzoom) / scaley);
-                    if (settings.lens) {
-                        zoomPupBox.css('visibility', 'visible');
-                    }
-                }
-                xpos = mousex - zoomPupBox.width() / 2 - imageLeft;
-                ypos = mousey - zoomPupBox.height() / 2 - imageTop;
-                if (settings.lens) {
-                    xpos = (mousex - zoomPupBox.width() / 2 < imageLeft) ? 0 : (mousex + zoomPupBox.width() / 2 > imageWidth + imageLeft) ? (imageWidth - zoomPupBox.width() - 2) : xpos;
-                    ypos = (mousey - zoomPupBox.height() / 2 < imageTop) ? 0 : (mousey + zoomPupBox.height() / 2 > imageHeight + imageTop) ? (imageHeight - zoomPupBox.height() - 2) : ypos;
-                    zoomPupBox.css({
-                        top: ypos,
-                        left: xpos
-                    });
-                }
-                scrolly = ypos;
-                scrollx = xpos;
-                zoomBox[0].scrollTop = scrolly * scaley;
-                zoomBox[0].scrollLeft = (scrollx) * scalex
-            }
         });
-        $el.on('mouseleave', function () {
-            $el.off('mousemove').children("img").attr("alt", noalt);
+        $el.off('mousemove').on('mousemove', throttleScaleMove);
+        $el.off('mouseleave').on('mouseleave', function () {
+            $el.children("img").attr("alt", noalt);
             if (settings.lens) {
                 $el.find('.' + settings.zoomPupClassName).remove();
             }
             $el.siblings('.' + settings.zoomClassName).remove();
         });
+
+        function scaleMove(e) {
+            var xpos, ypos, scaley = 'x', scalex = 'y',
+                mousex = e.pageX,
+                mousey = e.pageY,
+                imageLeft = $el.offset().left,
+                imageTop = $el.offset().top,
+                $image = $el.children('img').eq(0),
+                imageWidth = $image[0].offsetWidth,
+                imageHeight = $image[0].offsetHeight,
+                zoomBox = $el.siblings('.' + settings.zoomClassName).eq(0),
+                zoomPupBox = $el.find('.' + settings.zoomPupClassName).eq(0),
+                bigwidth = zoomBox.find('.' + settings.zoomBigImageClassName)[0].offsetWidth,
+                bigheight = zoomBox.find('.' + settings.zoomBigImageClassName)[0].offsetHeight;
+            if (!bigwidth || !bigheight || bigwidth < imageWidth) {
+                return;
+            }
+
+            if (isNaN(scalex) | isNaN(scaley)) {
+                scalex = (bigwidth / imageWidth);
+                scaley = (bigheight / imageHeight);
+                zoomPupBox.width((settings.xzoom) / scalex);
+                zoomPupBox.height((settings.yzoom) / scaley);
+                if (settings.lens) {
+                    zoomPupBox.css('visibility', 'visible');
+                }
+            }
+            xpos = mousex - zoomPupBox.width() / 2 - imageLeft;
+            ypos = mousey - zoomPupBox.height() / 2 - imageTop;
+            if (settings.lens) {
+                xpos = (mousex - zoomPupBox.width() / 2 < imageLeft) ? 0 : (mousex + zoomPupBox.width() / 2 > imageWidth + imageLeft) ? (imageWidth - zoomPupBox.width() - 2) : xpos;
+                ypos = (mousey - zoomPupBox.height() / 2 < imageTop) ? 0 : (mousey + zoomPupBox.height() / 2 > imageHeight + imageTop) ? (imageHeight - zoomPupBox.height() - 2) : ypos;
+                zoomPupBox.css({
+                    top: ypos,
+                    left: xpos
+                });
+            }
+            zoomBox[0].scrollTop = ypos * scaley;
+            zoomBox[0].scrollLeft = (xpos) * scalex
+        }
     };
 })(jQuery);
